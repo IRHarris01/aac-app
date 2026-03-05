@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>My App</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    :root {
+      --bg: #1a1a2e;
+      --card: #16213e;
+      --accent: #e94560;
+      --accent2: #0f9b8e;
+      --btn: #f5a623;
+      --btn-press: #d4891a;
+      --text: #ffffff;
+      --subtext: #a0aec0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: 'Georgia', serif;
+    }
+
+    /* Full screen layout */
+    #app {
+      display: flex;
+      flex-direction: column;
+      width: 100vw;
+      height: 100vh;
+      padding: 20px;
+      gap: 16px;
+    }
+
+    /* Top label - shows current item name */
+    #label {
+      text-align: center;
+      font-size: clamp(28px, 6vw, 52px);
+      font-weight: bold;
+      color: var(--text);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-shadow: 0 2px 20px rgba(233,69,96,0.4);
+      transition: opacity 0.3s;
+    }
+
+    /* Media area - image or video */
+    #media-container {
+      flex: 1;
+      border-radius: 24px;
+      overflow: hidden;
+      background: var(--card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      border: 3px solid rgba(255,255,255,0.08);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    }
+
+    #media-container img,
+    #media-container video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 21px;
+    }
+
+    /* Placeholder when no real media loaded */
+    #placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      color: var(--subtext);
+    }
+
+    #placeholder .emoji {
+      font-size: 80px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    #placeholder p {
+      font-size: 18px;
+      text-align: center;
+      max-width: 260px;
+      line-height: 1.5;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+
+    /* Flash overlay when play is triggered */
+    #flash {
+      position: absolute;
+      inset: 0;
+      background: rgba(245,166,35,0.25);
+      border-radius: 21px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s;
+    }
+
+    #flash.active {
+      opacity: 1;
+    }
+
+    /* Bottom controls */
+    #controls {
+      display: flex;
+      gap: 16px;
+      align-items: stretch;
+      height: clamp(90px, 18vh, 140px);
+    }
+
+    /* Big PLAY button - takes most of the width */
+    #btn-play {
+      flex: 3;
+      background: var(--btn);
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      font-size: clamp(22px, 4vw, 36px);
+      font-weight: bold;
+      color: #1a1a2e;
+      letter-spacing: 1px;
+      box-shadow: 0 6px 0px #a0670e, 0 8px 20px rgba(245,166,35,0.3);
+      transition: transform 0.1s, box-shadow 0.1s, background 0.1s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    #btn-play:active, #btn-play.pressed {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0px #a0670e, 0 4px 10px rgba(245,166,35,0.2);
+      background: var(--btn-press);
+    }
+
+    .play-icon {
+      font-size: clamp(28px, 5vw, 44px);
+    }
+
+    /* NEXT arrow button */
+    #btn-next {
+      flex: 1;
+      background: var(--accent2);
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(32px, 6vw, 52px);
+      color: white;
+      box-shadow: 0 6px 0px #097a6e, 0 8px 20px rgba(15,155,142,0.3);
+      transition: transform 0.1s, box-shadow 0.1s;
+      touch-action: manipulation;
+    }
+
+    #btn-next:active, #btn-next.pressed {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0px #097a6e, 0 4px 10px rgba(15,155,142,0.2);
+    }
+
+    /* Progress dots */
+    #dots {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding: 4px 0;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      transition: background 0.3s, transform 0.3s;
+    }
+
+    .dot.active {
+      background: var(--btn);
+      transform: scale(1.4);
+    }
+
+    /* Slide transition */
+    #media-container.slide-out {
+      animation: slideOut 0.2s ease forwards;
+    }
+
+    #media-container.slide-in {
+      animation: slideIn 0.25s ease forwards;
+    }
+
+    @keyframes slideOut {
+      to { opacity: 0; transform: translateX(-40px); }
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(40px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+  </style>
+</head>
+<body>
+
+<div id="app">
+
+  <div id="label">Loading...</div>
+
+  <div id="media-container">
+    <div id="placeholder">
+      <div class="emoji">🌟</div>
+      <p>Add your photos and videos to the items list below</p>
+    </div>
+    <div id="flash"></div>
+  </div>
+
+  <div id="dots"></div>
+
+  <div id="controls">
+    <button id="btn-play" aria-label="Play">
+      <span class="play-icon">▶</span>
+      <span id="play-label">PLAY</span>
+    </button>
+    <button id="btn-next" aria-label="Next">➜</button>
+  </div>
+
+</div>
+
+<script>
+  // ============================================================
+  // CONTENT — Edit this section to add your own items
+  // Each item has:
+  //   name:    shown at the top of the screen
+  //   type:    "image" or "video"
+  //   src:     path to file (put files in same folder as this HTML)
+  //   audio:   path to audio file to play (optional)
+  //   emoji:   shown as placeholder if no src provided
+  // ============================================================
+  const items = [
+    {
+      name: "Moses!",
+      type: "image",
+      src: "moses.jpeg",           // e.g. "photos/his-name.jpg"
+      audio: "moses-audio.m4a",         // e.g. "audio/hello.mp3"
+      emoji: "😊",
+      placeholderText: "Add a photo of him here"
+    },
+    {
+      name: "Mummy and Daddy",
+      type: "image",
+      src: "mummy-daddy.jpeg",           // e.g. "photos/family.jpg"
+      audio: "mummy-daddy-audio.m4a",         // e.g. "audio/family.mp3"
+      emoji: "👨‍👩‍👦",
+      placeholderText: "Add a family photo here"
+    },
+{
+      name: "Marina",
+      type: "image",
+      src: "marina.jpeg",           // e.g. "photos/family.jpg"
+      audio: "marina-audio.m4a",         // e.g. "audio/family.mp3"
+      emoji: "👨‍👩‍👦",
+      placeholderText: "Add a family photo here"
+    },{
+      name: "Granny and Grandfer",
+      type: "image",
+      src: "granny-grandfer.jpeg",           // e.g. "photos/family.jpg"
+      audio: "granny-grandfer-audio.m4a",         // e.g. "audio/family.mp3"
+      emoji: "👨‍👩‍👦",
+      placeholderText: "Add a family photo here"
+    },
+    {
+      name: "Trains",
+      type: "image",
+      src: "",           // e.g. "photos/train.jpg"
+      audio: "",         // e.g. "audio/train-sound.mp3"
+      emoji: "🚂",
+      placeholderText: "Add a train photo here"
+    },
+    {
+      name: "Music",
+      type: "video",
+      src: "",           // e.g. "videos/favourite-song.mp4"
+      audio: "",
+      emoji: "🎵",
+      placeholderText: "Add a favourite song video here"
+    },
+    {
+      name: "Well done!",
+      type: "image",
+      src: "",           // e.g. "photos/celebration.jpg"
+      audio: "",         // e.g. "audio/wellDone.mp3"
+      emoji: "⭐",
+      placeholderText: "Add a celebration image here"
+    }
+  ];
+  // ============================================================
+
+  let current = 0;
+  let audioEl = null;
+  let videoEl = null;
+
+  const label = document.getElementById('label');
+  const mediaContainer = document.getElementById('media-container');
+  const placeholder = document.getElementById('placeholder');
+  const flash = document.getElementById('flash');
+  const btnPlay = document.getElementById('btn-play');
+  const btnNext = document.getElementById('btn-next');
+  const dotsEl = document.getElementById('dots');
+
+  // Build dots
+  function buildDots() {
+    dotsEl.innerHTML = '';
+    items.forEach((_, i) => {
+      const d = document.createElement('div');
+      d.className = 'dot' + (i === current ? ' active' : '');
+      dotsEl.appendChild(d);
+    });
+  }
+
+  function renderItem(animate) {
+    const item = items[current];
+
+    // Update label
+    label.textContent = item.name;
+
+    // Stop any playing audio/video
+    if (audioEl) { audioEl.pause(); audioEl = null; }
+    if (videoEl) { videoEl.pause(); }
+
+    // Clear media container (keep flash overlay)
+    while (mediaContainer.firstChild !== flash) {
+      mediaContainer.removeChild(mediaContainer.firstChild);
+    }
+
+    if (item.src) {
+      if (item.type === 'video') {
+        videoEl = document.createElement('video');
+        videoEl.src = item.src;
+        videoEl.loop = true;
+        videoEl.muted = item.audio ? true : false;
+        videoEl.playsInline = true;
+        videoEl.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:21px;';
+        mediaContainer.insertBefore(videoEl, flash);
+      } else {
+        const img = document.createElement('img');
+        img.src = item.src;
+        img.alt = item.name;
+        mediaContainer.insertBefore(img, flash);
+      }
+    } else {
+      // Show emoji placeholder
+      const ph = document.createElement('div');
+      ph.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#a0aec0;';
+      ph.innerHTML = `<div style="font-size:80px;animation:pulse 2s ease-in-out infinite">${item.emoji}</div>
+                      <p style="font-size:18px;text-align:center;max-width:260px;line-height:1.5">${item.placeholderText}</p>`;
+      mediaContainer.insertBefore(ph, flash);
+    }
+
+    // Animate
+    if (animate) {
+      mediaContainer.classList.remove('slide-in');
+      mediaContainer.classList.add('slide-out');
+      setTimeout(() => {
+        mediaContainer.classList.remove('slide-out');
+        mediaContainer.classList.add('slide-in');
+        setTimeout(() => mediaContainer.classList.remove('slide-in'), 300);
+      }, 200);
+    }
+
+    buildDots();
+  }
+
+  function playItem() {
+    const item = items[current];
+
+    // Flash feedback
+    flash.classList.add('active');
+    setTimeout(() => flash.classList.remove('active'), 200);
+
+    // Play audio if specified
+    if (item.audio) {
+      if (audioEl) audioEl.pause();
+      audioEl = new Audio(item.audio);
+      audioEl.play().catch(() => {});
+    }
+
+    // Play video if it's a video item
+    if (videoEl) {
+      videoEl.currentTime = 0;
+      videoEl.play().catch(() => {});
+    }
+  }
+
+  function nextItem() {
+    current = (current + 1) % items.length;
+    renderItem(true);
+  }
+
+  // Button press visual feedback helper
+  function pressEffect(btn) {
+    btn.classList.add('pressed');
+    setTimeout(() => btn.classList.remove('pressed'), 200);
+  }
+
+  btnPlay.addEventListener('click', () => {
+    pressEffect(btnPlay);
+    playItem();
+  });
+
+  btnPlay.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    pressEffect(btnPlay);
+    playItem();
+  }, { passive: false });
+
+  btnNext.addEventListener('click', () => {
+    pressEffect(btnNext);
+    nextItem();
+  });
+
+  btnNext.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    pressEffect(btnNext);
+    nextItem();
+  }, { passive: false });
+
+  // Prevent scrolling/zooming on tablet
+  document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+  document.addEventListener('contextmenu', e => e.preventDefault());
+
+  // Init
+  renderItem(false);
+</script>
+
+</body>
+</html>
